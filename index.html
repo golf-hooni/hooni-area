@@ -424,7 +424,7 @@ function resolveNames(){
 
 /* ================= Kakao ================= */
 /* JavaScript 키는 카카오 개발자 콘솔에 등록한 주소에서만 동작해요. 설정 화면에서 바꿀 수 있어요. */
-var DEFAULT_KAKAO_KEY='';
+var DEFAULT_KAKAO_KEY='c1b0f8610de4ba6ff4a9254b33151cc2';
 var KAKAO={key:lsGet('hooni-kakao-key','')||DEFAULT_KAKAO_KEY,rest:lsGet('hooni-kakao-rest',''),ready:false,err:'',places:null,geocoder:null};
 function loadKakao(){
   if(!KAKAO.key||KAKAO.ready)return;
@@ -643,7 +643,9 @@ function planRoute(){
   }).catch(function(e){S.loading='';S.routeErr=(e&&e.code==='bad')?'장소 위치를 찾지 못했어요. 지역 이름을 함께 적어주세요. 예) 부산 해운대':sampleErr(e);if(e&&e.code==='cancelled')S.routeErr='';render();});
 }
 function resolvePlace(q,near){q=(q||'').trim();if(!q)return Promise.resolve(null);
-  var all=S.places.concat(S.bases);var hit=all.filter(function(p){return inKorea(p)&&(p.name.indexOf(q)>=0||(p.address||'').indexOf(q)>=0);})[0];
+  var all=S.places.concat(S.bases).filter(inKorea);
+  // 이름이 정확히 같은 내 기록은 바로 사용, 일부만 겹치면 카카오 검색을 우선 (예: '제주공항'이 '고집돌우럭 제주공항점'으로 잡히지 않게)
+  var hit=all.filter(function(p){return p.name===q;})[0]||(!KAKAO.ready&&all.filter(function(p){return p.name.indexOf(q)>=0||(p.address||'').indexOf(q)>=0;})[0]);
   if(hit)return Promise.resolve({name:hit.name,lat:hit.lat,lng:hit.lng});
   if(!KAKAO.ready)return Promise.resolve(null);
   return kSearch(q,near).then(function(r){return r[0]?{name:r[0].name,lat:r[0].lat,lng:r[0].lng}:null;},function(){return null;});}
