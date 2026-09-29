@@ -405,7 +405,9 @@ function colSave(name,obj){
   var arr=S[key].filter(function(x){return x.id!==obj.id;});arr.push(obj);
   if(!lsSet('huni2-'+name,arr))return Promise.reject({code:'local_full'});S[key]=arr;render();return Promise.resolve();
 }
+function removePlace(p,msg){return colDel('places',p).then(function(){(p.photos||[]).forEach(dropPhoto);if(sheet.open)sheet.close();toast(msg||(p.name+' 뺐어요.'));},writeErr);}
 function colDel(name,obj){
+  if(name==='places'&&obj&&obj.pk&&String(obj.src||'').indexOf('pack:')===0){var hid=lsGet('hooni-pack-hidden',{});hid[obj.src+'/'+obj.pk]=1;lsSet('hooni-pack-hidden',hid);}
   if(S.store==='db')return S.db.collection(name).doc(obj.id).delete();
   var key=name;S[key]=S[key].filter(function(x){return x.id!==obj.id;});lsSet('huni2-'+name,S[key]);render();return Promise.resolve();
 }
@@ -996,7 +998,7 @@ function openDetail(p){
       inKorea(p)?h('button',{cls:'btn',onclick:function(){sheet.close();S.tab='map';S.sub=null;S.msel=p.id;S.mf='all';S.msit='';S.mvb={x:PX(p.lng)-60,y:PY(p.lat)-60,w:120,h:120};render();}},'지도에서 보기'):null,
       p.kakaoUrl?h('a',{cls:'btn',href:p.kakaoUrl,target:'_blank',rel:'noopener'},'카카오 정보'):null,
       h('a',{cls:'btn',href:naverSearch(p),target:'_blank',rel:'noopener'},'네이버지도')),
-    h('div',{cls:'actions'},h('span'),h('div',null,h('button',{cls:'btn',onclick:function(){sheet.close();}},'닫기'),h('button',{cls:'btn primary',onclick:function(){openEditor(p);}},'수정'))));
+    h('div',{cls:'actions'},armedDelete(p.status==='wish'?'별로예요, 빼기':'삭제',function(){removePlace(p);}),h('div',null,h('button',{cls:'btn',onclick:function(){sheet.close();}},'닫기'),h('button',{cls:'btn primary',onclick:function(){openEditor(p);}},'수정'))));
   sheet.replaceChildren(body);if(!sheet.open)sheet.showModal();
 }
 function copyText(t){try{navigator.clipboard.writeText(t).then(function(){toast('복사했어요.');},function(){toast('복사하지 못했어요. 길게 눌러 복사해 주세요.');});}catch(e){toast('복사하지 못했어요.');}}
@@ -1220,17 +1222,19 @@ function openTripEditor(t){
 /* 추천 목록: 앱과 같이 올린 data/*.json 을 불러와 이미 있는 곳은 건너뛰고 추가 */
 function addPack(id){
   return fetch('data/'+id+'.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(pk){
-    var now=Date.now(),added=0,skipped=0,chain=Promise.resolve();
+    var now=Date.now(),added=0,skipped=0,hidden=0,chain=Promise.resolve(),hid=lsGet('hooni-pack-hidden',{});
     pk.places.forEach(function(x,i){
+      if(hid['pack:'+id+'/'+x.key]){hidden++;return;}
       if(S.places.some(function(p){return (p.src==='pack:'+id&&p.pk===x.key)||sameSpot(p,x);})){skipped++;return;}
       var rec={id:newId('places'),name:x.name,cat:x.cat||'food',status:'wish',revisit:'',tags:['골프'],meals:x.breakfast?['아침']:[],feats:[],price:'',
         menu:x.menu||'',memo:[x.golf?x.golf+' 근처':'',x.check||''].filter(Boolean).join(' · '),area:x.area||'',address:x.address||'',list:pk.list||pk.title,
         visitedAt:'',photos:[],lat:x.lat,lng:x.lng,phone:x.phone||'',kakaoUrl:x.kakaoUrl||'',src:'pack:'+id,pk:x.key,createdAt:now+i};
       added++;chain=chain.then(function(){return colSave('places',rec);});
     });
-    return chain.then(function(){lsSet('hooni-pack-'+id,1);return {added:added,skipped:skipped,title:pk.title};});
+    return chain.then(function(){lsSet('hooni-pack-'+id,1);return {added:added,skipped:skipped,hidden:hidden,title:pk.title};});
   });
 }
+function wishN(id){return S.places.filter(function(x){return x.src==='pack:'+id&&x.status==='wish';}).length;}
 function openPacks(){
   var st={packs:null,busy:''};
   function draw(){
@@ -1241,9 +1245,13 @@ function openPacks(){
       var done=have>=pk.count||!!lsGet('hooni-pack-'+pk.id,0);
       return h('li',null,h('div',{cls:'dcard'},h('h4',{text:pk.title+' · '+pk.count+'곳'}),h('p',{cls:'why',text:pk.desc}),
         h('div',{cls:'row'},h('button',{cls:'btn green',disabled:!!st.busy||done,onclick:function(){st.busy=pk.id;draw();
-          addPack(pk.id).then(function(r){st.busy='';toast(r.title+' '+r.added+'곳 추가'+(r.skipped?', '+r.skipped+'곳은 이미 있어요':''));draw();},function(){st.busy='';toast('목록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.');draw();});}},
+          addPack(pk.id).then(function(r){st.busy='';toast(r.title+' '+r.added+'곳 추가'+(r.skipped?', '+r.skipped+'곳은 이미 있어요':'')+(r.hidden?', 뺀 '+r.hidden+'곳은 제외':''));draw();},function(){st.busy='';toast('목록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.');draw();});}},
           st.busy===pk.id?'추가하는 중':done?'모두 추가됨':have?'나머지 추가':'목록 추가'),
-          have?h('button',{cls:'btn',onclick:function(){sheet.close();S.tab='lists';S.llist=pk.list||'all';S.lstat='all';S.lq='';render();}},'리스트에서 보기'):null)));})));
+          have?h('button',{cls:'btn',onclick:function(){sheet.close();S.tab='lists';S.llist=pk.list||'all';S.lstat='all';S.lq='';render();}},'리스트에서 보기'):null),
+        wishN(pk.id)?h('div',{cls:'row',style:'margin-top:8px'},armedDelete('안 가본 '+wishN(pk.id)+'곳 모두 빼기',function(){
+          var arr=S.places.filter(function(x){return x.src==='pack:'+pk.id&&x.status==='wish';}),c=Promise.resolve();
+          arr.forEach(function(x){c=c.then(function(){return colDel('places',x);});});
+          c.then(function(){toast(arr.length+'곳 뺐어요. 다녀온 곳은 그대로 뒀어요.');draw();},writeErr);})):null));})));
     var y=sheet.scrollTop;sheet.replaceChildren(h('div',{cls:'sheet'},body));sheet.scrollTop=y;if(!sheet.open)sheet.showModal();
   }
   draw();
