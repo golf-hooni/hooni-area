@@ -1,0 +1,19 @@
+{
+  "id": "golf-picks-2025",
+  "title": "전국 골프장 주변 맛집",
+  "desc": "블로그 '전국 골프장 주변 맛집 추천 BEST'(홀 인원, 2025.5)에 이름이 나온 가게를 카카오에서 확인해 모은 목록",
+  "source": "https://magic8800.tistory.com/",
+  "list": "골프장 주변 맛집",
+  "places": [
+    {"key": "gp01", "name": "그늘집", "cat": "food", "menu": "어복쟁반, 가마구이 불고기 정식", "golf": "여주 JC·여주 IC 근처 골프장", "address": "경기 여주시 가남읍 본두3길 91", "area": "여주시 가남읍", "lat": 37.239896, "lng": 127.583949, "phone": "031-884-8085", "kakaoUrl": "https://place.map.kakao.com/24786498"},
+    {"key": "gp02", "name": "금성 (토속음식점)", "cat": "food", "menu": "손두부, 더덕구이, 청국장", "golf": "양지파인리조트", "address": "경기 용인시 처인구 양지읍 남평로 16", "area": "용인시 처인구", "lat": 37.231758, "lng": 127.286813, "phone": "031-338-3366", "kakaoUrl": "https://place.map.kakao.com/8217485"},
+    {"key": "gp03", "name": "물레방아", "cat": "food", "menu": "한식 백반", "golf": "수원·남부·골드·코리아퍼블릭 CC", "address": "경기 용인시 기흥구 지삼로250번길 27", "area": "용인시 기흥구", "lat": 37.233617, "lng": 127.136179, "phone": "031-287-2447", "kakaoUrl": "https://place.map.kakao.com/116640033"},
+    {"key": "gp04", "name": "풍년가든", "cat": "food", "menu": "소머리국밥", "golf": "벨라스톤 CC (차로 2~3분)", "breakfast": true, "address": "강원 횡성군 서원면 옥계9길 35", "area": "횡성군 서원면", "lat": 37.451435, "lng": 127.848388, "phone": "033-344-6622", "kakaoUrl": "https://place.map.kakao.com/24538391"},
+    {"key": "gp05", "name": "장수더덕정식", "cat": "food", "menu": "더덕정식", "golf": "옥스필드 CC", "address": "강원 횡성군 서원면 경강로 266", "area": "횡성군 서원면", "lat": 37.526018, "lng": 127.826625, "phone": "033-344-0777", "kakaoUrl": "https://place.map.kakao.com/1210340208"},
+    {"key": "gp06", "name": "백촌막국수", "cat": "food", "menu": "막국수", "golf": "설악썬밸리 골프리조트", "address": "강원 고성군 토성면 백촌1길 10", "area": "고성군 토성면", "lat": 38.292986, "lng": 128.541807, "phone": "033-632-5422", "kakaoUrl": "https://place.map.kakao.com/7886148"},
+    {"key": "gp07", "name": "일홍", "cat": "food", "menu": "짬뽕밥, 볶음밥 (중식)", "golf": "파가니카 CC (강촌 IC 부근)", "address": "강원 춘천시 남면 소주고개로 19", "area": "춘천시 남면", "lat": 37.740597, "lng": 127.624334, "phone": "033-262-3319", "kakaoUrl": "https://place.map.kakao.com/493572667"},
+    {"key": "gp08", "name": "너울주막", "cat": "food", "menu": "너울볶음밥, 로제파스타", "golf": "강릉 쪽 골프장", "address": "강원 강릉시 강중길48번길 4", "area": "강릉시 입암동", "lat": 37.755324, "lng": 128.909084, "phone": "", "kakaoUrl": "https://place.map.kakao.com/171285816"},
+    {"key": "gp09", "name": "오성가든식당", "cat": "food", "menu": "주물럭, 청국장", "golf": "골프존카운티 순천·파인힐스", "address": "전남 순천시 주암면 송광사길 96", "area": "순천시 주암면", "lat": 35.047105, "lng": 127.268927, "phone": "061-755-7753", "kakaoUrl": "https://place.map.kakao.com/9272038"},
+    {"key": "gp10", "name": "해송식당", "cat": "food", "menu": "한식", "golf": "뉴스프링빌 CC (약 15km)", "check": "블로그에는 '상주 해송식당'으로 나와요. 상주에서는 찾지 못해 가까운 황간의 해송식당으로 넣었어요. 가기 전에 확인해 주세요.", "address": "충북 영동군 황간면 하옥포3길 2", "area": "영동군 황간면", "lat": 36.225034, "lng": 127.91118, "phone": "043-745-8253", "kakaoUrl": "https://place.map.kakao.com/8674483"}
+  ]
+}
