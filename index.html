@@ -1226,8 +1226,8 @@ function addPack(id){
     pk.places.forEach(function(x,i){
       if(hid['pack:'+id+'/'+x.key]){hidden++;return;}
       if(S.places.some(function(p){return (p.src==='pack:'+id&&p.pk===x.key)||sameSpot(p,x);})){skipped++;return;}
-      var rec={id:newId('places'),name:x.name,cat:x.cat||'food',status:'wish',revisit:'',tags:['골프'],meals:x.breakfast?['아침']:[],feats:[],price:'',
-        menu:x.menu||'',memo:[x.golf?x.golf+' 근처':'',x.check||''].filter(Boolean).join(' · '),area:x.area||'',address:x.address||'',list:pk.list||pk.title,
+      var rec={id:newId('places'),name:x.name,cat:x.cat||'food',status:'wish',revisit:'',tags:(x.tags||pk.tags||['골프']).slice(),meals:x.breakfast?['아침']:[],feats:[],price:'',
+        menu:x.menu||'',memo:x.memo||[x.golf?x.golf+' 근처':'',x.check||''].filter(Boolean).join(' · '),area:x.area||'',address:x.address||'',list:pk.list||pk.title,
         visitedAt:'',photos:[],lat:x.lat,lng:x.lng,phone:x.phone||'',kakaoUrl:x.kakaoUrl||'',src:'pack:'+id,pk:x.key,createdAt:now+i};
       added++;chain=chain.then(function(){return colSave('places',rec);});
     });

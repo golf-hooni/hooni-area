@@ -1,5 +1,5 @@
 // 앱 화면 파일만 캐시해서 오프라인·느린 통신에서도 열리게 함. 카카오 지도 등 외부 요청은 건드리지 않음.
-const CACHE = 'hooni-area-v6';
+const CACHE = 'hooni-area-v7';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon.svg'];
 
 self.addEventListener('install', e => {
