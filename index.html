@@ -257,6 +257,8 @@ dialog::backdrop{background:rgba(6,10,8,.5)}
 .dl dt{color:var(--muted);font-weight:700;font-size:.84rem}
 .dl dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.tag.sun{background:var(--flag);color:var(--flag-ink)}
+.gm-note{font-size:.8rem;color:var(--muted);margin:4px 0 0}
 .tag{font-size:.74rem;border-radius:999px;padding:2px 8px;background:var(--green-soft);color:var(--green);font-weight:700}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:.88rem;z-index:30;max-width:90vw;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.2)}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--flag);outline-offset:2px}
@@ -385,7 +387,7 @@ function nearLine(p,line){var best={d:Infinity,along:0},acc=0;
 var S={tab:'home',sub:null,places:[],bases:[],trips:[],store:'init',db:null,assets:null,sample:null,sampleReady:false,user:null,myId:null,names:{},
   from:'',to:'',toPos:null,useMe:true,sit:'',me:null,route:null,recs:[],loading:'',routeErr:'',rf:'all',rsel:null,rvb:null,
   rahead:false,watch:null,
-  mf:'all',msit:'',msel:null,mvb:null,
+  mf:'all',msit:'',mbf:false,msel:null,mvb:null,
   lq:'',lcat:'all',lstat:'all',llist:'all',lsit:'',lsort:'recent',
   trip:null,tday:null,tview:'list',tsel:null,tvb:null,tpick:null};
 var ctl=null,toastT=null,activeMap=null;
@@ -685,7 +687,7 @@ function listRow(p,sel,onclick,mark){
   var mine=mark&&!p.rec&&p.status==='visited';
   return h('li',null,h('button',{cls:'li k-'+(p.cat||'etc')+(sel?' sel':'')+(mine?' mine':''),type:'button',onclick:onclick},th,
     h('div',null,h('h4',{text:p.name}),
-      h('div',{cls:'meta'},h('span',{cls:'kt',text:CATN[p.cat]||'기타'}),mark&&p.rec?h('span',{cls:'tag',text:'추천'}):null,mine?h('span',{cls:'tag',text:'★ 내 기록'}):null,revBadge(p),p.area?h('span',{text:p.area}):null,typeof p.ahead==='number'?h('span',{style:'font-weight:700;color:var(--ink)',text:kmFmt(p.ahead)+' 앞'}):null,typeof p.off==='number'?h('span',{text:'경로에서 '+kmFmt(p.off)}):null,typeof p.dist==='number'?h('span',{text:kmFmt(p.dist)}):null),
+      h('div',{cls:'meta'},h('span',{cls:'kt',text:CATN[p.cat]||'기타'}),mark&&p.rec?h('span',{cls:'tag',text:'추천'}):null,mine?h('span',{cls:'tag',text:'★ 내 기록'}):null,revBadge(p),p.area?h('span',{text:p.area}):null,typeof p.ahead==='number'?h('span',{style:'font-weight:700;color:var(--ink)',text:kmFmt(p.ahead)+' 앞'}):null,typeof p.off==='number'?h('span',{text:'경로에서 '+kmFmt(p.off)}):null,typeof p.dist==='number'?h('span',{text:kmFmt(p.dist)}):null,isBreakfast(p)&&p.cat!=='golf'?h('span',{cls:'tag sun',text:'☀ '+(p.opens?p.opens+' 오픈':'아침')}):null),
       (p.menu||p.why||p.memo)?h('p',{cls:'why',text:[p.menu,p.why||p.memo].filter(Boolean).join(' · ')}):null)));
 }
 function emptyState(title,text,btn){
@@ -725,6 +727,10 @@ function homeView(){
     bs.appendChild(h('button',{cls:'base',type:'button',onclick:function(){openBase(b);}},h('div',{cls:'ic'},icon(b.type==='golf'?'flag':b.type==='home'?'house':b.type==='work'?'brief':'pin',20)),h('b',{text:b.name}),h('span',{text:(BTYPES.filter(function(t){return t[0]===b.type;})[0]||['','자주 가는 곳'])[1]+' · 근처 '+n+'곳'})));});
   bs.appendChild(h('button',{cls:'base add',type:'button',onclick:function(){openBaseEditor(null);}},h('span',null,'골프장이나 집을',h('br'),'거점으로 추가')));
   bsec.appendChild(bs);out.push(bsec);
+  // golf breakfast
+  var gs=golfSpots();
+  if(gs.length){out.push(h('section',{cls:'sec'},h('div',{cls:'sech'},h('h3',{text:'☀ 골프장 아침 식당'})),
+    h('div',{cls:'hscroll'},gs.map(function(g){var n=breakfastNear(g,20).length;return h('button',{cls:'base',type:'button',onclick:function(){openGolfMorning(g);}},h('div',{cls:'ic'},icon('flag',20)),h('b',{text:g.name}),h('span',{text:n?'아침 '+n+'곳':'아침 식당 찾기'}));}))));}
   // again
   var again=S.places.filter(function(p){return p.revisit==='again';}).sort(function(a,b){return (b.updatedAt||0)-(a.updatedAt||0);});
   if(again.length){out.push(h('section',{cls:'sec'},h('div',{cls:'sech'},h('h3',{text:'또 갈래'}),h('button',{cls:'more',onclick:function(){S.tab='lists';S.lstat='again';render();}},'전체')),
@@ -810,12 +816,53 @@ function routeDetail(p,R){
 }
 
 /* ================= bases ================= */
+/* ================= golf breakfast ================= */
+function isBreakfast(p){return (p.meals||[]).indexOf('아침')>=0;}
+function golfSpots(){var out=[];
+  S.bases.forEach(function(b){if(b.type==='golf'&&inKorea(b))out.push({key:'B:'+b.id,name:b.name,lat:b.lat,lng:b.lng});});
+  S.places.forEach(function(p){if(p.cat==='golf'&&inKorea(p)&&!out.some(function(o){return sameSpot(o,p);}))out.push({key:p.id,name:p.name,lat:p.lat,lng:p.lng});});
+  return out;}
+function breakfastNear(g,r){return nearby(g,r||20).filter(function(p){return p.cat!=='golf'&&isBreakfast(p);});}
+var MORNING_KW=['해장국','국밥','기사식당','콩나물국밥','김밥'];
+function kMorning(g){
+  var K=kakao.maps.services;
+  return Promise.all(MORNING_KW.map(function(kw){return new Promise(function(res){
+    KAKAO.places.keywordSearch(kw,function(d,st){res(st===K.Status.OK?d:[]);},{location:new kakao.maps.LatLng(g.lat,g.lng),radius:20000,sort:K.SortBy.DISTANCE,size:15});});}))
+  .then(function(all){var seen={},out=[];all.forEach(function(arr){arr.forEach(function(x){if(seen[x.id])return;seen[x.id]=1;if(!/음식점/.test(x.category_name||''))return;out.push(kNorm(x));});});
+    return out.sort(function(a,b){return (a.dist||99)-(b.dist||99);}).slice(0,20);});}
+function openGolfMorning(g){
+  var st={loading:false,res:null};
+  function draw(){
+    var mine=breakfastNear(g,20);
+    var body=[h('div',{cls:'grab'}),h('h2',{text:'☀ '+g.name+' 아침 식당'}),h('p',{cls:'hint',text:'라운딩 전에 들르기 좋은 곳이에요. 반경 20km, 가까운 순서.'}),
+      h('h3',{style:'margin:16px 0 8px;font-size:1rem',text:'내 기록 '+mine.length+'곳'}),
+      mine.length?h('ul',{cls:'list'},mine.map(function(p){return listRow(p,false,function(){openDetail(placeById(p.id));});})):
+        h('p',{cls:'hint',text:'아직 아침 식당으로 표시한 곳이 없어요. 기록할 때 "☀ 아침 돼요"를 눌러두면 여기에 모여요.'})];
+    if(KAKAO.ready){
+      body.push(h('h3',{style:'margin:22px 0 8px;font-size:1rem',text:'카카오에서 아침 후보 찾기'}),
+        h('p',{cls:'hint',text:'해장국·국밥·기사식당·김밥처럼 아침에 여는 곳이 많은 식당을 찾아요. 실제 여는 시간은 카카오 정보에서 꼭 확인하세요.'}));
+      if(!st.res)body.push(h('button',{cls:'btn green',disabled:st.loading,onclick:function(){st.loading=true;draw();kMorning(g).then(function(r){st.loading=false;st.res=r;draw();},function(){st.loading=false;st.res=[];toast('카카오 검색에 실패했어요.');draw();});}},st.loading?'찾는 중':'근처 아침 후보 찾기'));
+      else if(!st.res.length)body.push(h('p',{cls:'hint',text:'근처에서 찾지 못했어요.'}));
+      else body.push(h('ul',{cls:'list'},st.res.map(function(r){
+        var saved=S.places.some(function(x){return sameSpot(x,r);});
+        return h('li',null,h('div',{cls:'li k-food',style:'cursor:default'},h('div',{cls:'th'},r.name.slice(0,1)),
+          h('div',null,h('h4',{text:r.name}),h('div',{cls:'meta'},h('span',{cls:'kt',text:r.catName||'식당'}),r.dist!=null?h('span',{text:kmFmt(r.dist)}):null,h('span',{text:r.area})),
+            h('div',{cls:'row',style:'margin-top:6px'},r.url?h('a',{cls:'btn',href:r.url.replace('http://','https://'),target:'_blank',rel:'noopener'},'여는 시간 확인'):null,
+              h('button',{cls:'btn primary',disabled:saved,onclick:function(){
+                var np={id:newId('places'),name:r.name,cat:'food',status:'wish',revisit:'',tags:['골프'],meals:['아침'],feats:[],price:'',menu:r.catName||'',memo:g.name+' 근처 아침 후보 (카카오 검색)',area:r.area,address:r.addr,list:'골프장 아침',visitedAt:'',photos:[],lat:+r.lat.toFixed(6),lng:+r.lng.toFixed(6),phone:r.phone,kakaoUrl:(r.url||'').replace('http://','https://'),src:'kakao'};
+                colSave('places',np).then(function(){toast(r.name+' 저장했어요.');draw();},writeErr);}},saved?'저장됨':'아침 후보로 저장')))));})));
+    }
+    var y=sheet.scrollTop;sheet.replaceChildren(h('div',{cls:'sheet'},body));sheet.scrollTop=y;if(!sheet.open)sheet.showModal();
+  }
+  draw();
+}
 function openBase(b){
   var rad=b.type==='golf'?15:5;var list=inKorea(b)?nearby(b,rad):[];
   var groups=b.type==='golf'?[['아침','라운딩 전 아침'],['점심','점심'],['저녁','라운딩 후'],['','그 밖의 곳']]:null;
   var body=[h('div',{cls:'grab'}),h('h2',{text:b.name}),h('p',{cls:'hint',text:(b.address||'')+(inKorea(b)?' · 반경 '+rad+'km 안 내 장소 '+list.length+'곳':' · 위치가 없어요')}),
     h('div',{cls:'row',style:'margin:10px 0'},inKorea(b)?h('a',{cls:'btn green',href:kakaoTo(b),target:'_blank',rel:'noopener'},'길안내'):null,
       inKorea(b)?h('button',{cls:'btn',onclick:function(){goRouteTo(b);}},'가는 길 맛집'):null,
+      b.type==='golf'&&inKorea(b)?h('button',{cls:'btn',onclick:function(){openGolfMorning({key:'B:'+b.id,name:b.name,lat:b.lat,lng:b.lng});}},'☀ 아침 식당'):null,
       h('button',{cls:'btn',onclick:function(){openBaseEditor(b);}},'수정'))];
   if(!list.length)body.push(h('p',{cls:'hint',text:'근처에 기록한 곳이 아직 없어요. 가는 길 맛집에서 찾아 저장해 보세요.'}));
   else if(groups){var used={};groups.forEach(function(g){var arr=list.filter(function(p){if(used[p.id])return false;if(!g[0])return true;return (p.meals||[]).indexOf(g[0])>=0;});
@@ -865,8 +912,9 @@ function openBaseEditor(b){
 /* ================= MAP TAB ================= */
 function mapView(){
   var out=[];
-  var list=S.places.filter(function(p){if(S.mf!=='all'&&p.cat!==S.mf)return false;if(S.msit&&(p.tags||[]).indexOf(S.msit)<0)return false;return true;});
+  var list=S.places.filter(function(p){if(S.mbf&&!isBreakfast(p))return false;if(S.mf!=='all'&&p.cat!==S.mf)return false;if(S.msit&&(p.tags||[]).indexOf(S.msit)<0)return false;return true;});
   var chips=h('div',{cls:'chips'},[['all','전체']].concat(CAT).map(function(c){return h('button',{cls:'chip'+(c[0]!=='all'?' k-'+c[0]:''),'aria-pressed':S.mf===c[0]?'true':'false',onclick:function(){S.mf=c[0];S.msel=null;render();}},c[0]!=='all'?h('span',{cls:'dot'}):null,c[1]);}),
+    h('button',{cls:'chip','aria-pressed':S.mbf?'true':'false',onclick:function(){S.mbf=!S.mbf;S.msel=null;render();}},'☀ 아침'),
     SITS.map(function(s){return h('button',{cls:'chip','aria-pressed':S.msit===s?'true':'false',onclick:function(){S.msit=S.msit===s?'':s;S.msel=null;render();}},'#'+s);}));
   out.push(chips);
   var box=h('div',{cls:'mapbox full'});out.push(box);
@@ -894,6 +942,7 @@ function filteredPlaces(){
     if(S.lstat==='wish'&&p.status!=='wish')return false;
     if(S.lstat==='visited'&&p.status!=='visited')return false;
     if(S.lstat==='again'&&p.revisit!=='again')return false;
+    if(S.lstat==='breakfast'&&!isBreakfast(p))return false;
     if(S.llist!=='all'&&(p.list||'')!==S.llist)return false;
     if(S.lsit&&(p.tags||[]).indexOf(S.lsit)<0)return false;
     if(q&&[p.name,p.area,p.address,p.list,p.menu,p.memo,(p.tags||[]).join(' ')].join(' ').indexOf(q)<0)return false;
@@ -908,7 +957,7 @@ function listsView(){
   if(lists.length)out.push(h('div',{cls:'chips'},[['all','모든 리스트']].concat(lists.map(function(l){return [l,l];})).map(function(o){
     var n=o[0]==='all'?S.places.length:S.places.filter(function(p){return p.list===o[0];}).length;
     return h('button',{cls:'chip','aria-pressed':S.llist===o[0]?'true':'false',onclick:function(){S.llist=o[0];render();}},o[1],h('span',{cls:'n',text:String(n)}));})));
-  out.push(h('div',{cls:'chips'},[['all','전부'],['visited','다녀온 곳'],['again','또 갈래'],['wish','가고 싶은 곳']].map(function(o){return h('button',{cls:'chip','aria-pressed':S.lstat===o[0]?'true':'false',onclick:function(){S.lstat=o[0];render();}},o[1]);}),
+  out.push(h('div',{cls:'chips'},[['all','전부'],['visited','다녀온 곳'],['again','또 갈래'],['wish','가고 싶은 곳'],['breakfast','☀ 아침 가능']].map(function(o){return h('button',{cls:'chip','aria-pressed':S.lstat===o[0]?'true':'false',onclick:function(){S.lstat=o[0];render();}},o[1]);}),
     h('button',{cls:'chip',onclick:function(){S.lsort=S.lsort==='revisit'?'recent':'revisit';render();}},S.lsort==='revisit'?'재방문순':'최근순')));
   out.push(h('div',{cls:'chips'},[['all','전체']].concat(CAT).map(function(c){return h('button',{cls:'chip'+(c[0]!=='all'?' k-'+c[0]:''),'aria-pressed':S.lcat===c[0]?'true':'false',onclick:function(){S.lcat=c[0];render();}},c[0]!=='all'?h('span',{cls:'dot'}):null,c[1]);}),
     SITS.map(function(s){return h('button',{cls:'chip','aria-pressed':S.lsit===s?'true':'false',onclick:function(){S.lsit=S.lsit===s?'':s;render();}},'#'+s);})));
@@ -936,10 +985,12 @@ function openDetail(p){
       p.address?[h('dt',{text:'주소'}),h('dd',null,p.address,' ',h('button',{cls:'linkbtn',onclick:function(){copyText(p.address);}},'복사'))]:null,
       p.area?[h('dt',{text:'지역'}),h('dd',{text:p.area})]:null,
       p.list?[h('dt',{text:'리스트'}),h('dd',{text:p.list})]:null,
+      isBreakfast(p)&&p.cat!=='golf'?[h('dt',{text:'아침'}),h('dd',{text:p.opens?p.opens+'부터 영업':'아침 식사 가능'})]:null,
       p.phone?[h('dt',{text:'전화'}),h('dd',null,h('a',{href:'tel:'+p.phone,text:p.phone}))]:null,
       p.visitedAt?[h('dt',{text:'다녀온 날'}),h('dd',{text:p.visitedAt})]:null,
       by?[h('dt',{text:'기록'}),h('dd',{text:by})]:null),
     h('div',{cls:'row'},inKorea(p)?h('a',{cls:'btn green',href:kakaoTo(p),target:'_blank',rel:'noopener'},'길안내'):null,
+      p.cat==='golf'&&inKorea(p)?h('button',{cls:'btn',onclick:function(){openGolfMorning({key:p.id,name:p.name,lat:p.lat,lng:p.lng});}},'☀ 아침 식당'):null,
       inKorea(p)?h('button',{cls:'btn',onclick:function(){goRouteTo(p);}},'가는 길 맛집'):null,
       inKorea(p)?h('button',{cls:'btn',onclick:function(){sheet.close();S.tab='map';S.sub=null;S.msel=p.id;S.mf='all';S.msit='';S.mvb={x:PX(p.lng)-60,y:PY(p.lat)-60,w:120,h:120};render();}},'지도에서 보기'):null,
       p.kakaoUrl?h('a',{cls:'btn',href:p.kakaoUrl,target:'_blank',rel:'noopener'},'카카오 정보'):null,
@@ -981,6 +1032,8 @@ function openEditor(p,onSaved){
       h('label',{cls:'f',text:'이름'}),nameField(),
       h('label',{cls:'f',text:'종류'}),optGroup(CAT,d.cat,false,function(v){if(v&&v!==d.cat){d.cat=v;d.price='';d.feats=[];if(v==='golf'&&d.tags.indexOf('골프')<0)d.tags=d.tags.concat(['골프']);}redraw();}),
       d.status==='visited'?[h('label',{cls:'f',text:'다시 갈래요?'}),optGroup(REV,d.revisit,false,function(v){d.revisit=v;redraw();},'rev')]:null,
+      food?[h('label',{cls:'f',text:'아침 식사'}),h('div',{cls:'row'},optGroup([['y','☀ 아침 돼요']],isBreakfast(d)?['y']:[],true,function(v){var m=(d.meals||[]).filter(function(x){return x!=='아침';});if(v.length)m.push('아침');else d.opens='';d.meals=m;redraw();}),
+        isBreakfast(d)?h('label',{cls:'row',style:'gap:6px;font-size:.86rem;color:var(--muted)'},'여는 시간',h('input',{type:'time',value:d.opens||'',style:'width:auto;padding:8px 10px',onchange:function(e){d.opens=e.target.value;}})):null)]:null,
       h('label',{cls:'f',text:'한 줄 평'}),(function(){var t=h('textarea',{placeholder:golf?'코스 상태, 그린, 캐디, 식당 등':'맛, 분위기, 웨이팅, 주차 등',style:'min-height:64px',oninput:function(e){d.memo=e.target.value;}});t.value=d.memo||'';return t;})(),
       h('label',{cls:'f',text:'지도 위치'}),locControls(d,st,redraw),wrap,
       more?null:h('button',{type:'button',cls:'more-toggle',onclick:function(){more=true;redraw();}},'+ 자세히 적기 (상태·메뉴·가격·주소·리스트)'),
